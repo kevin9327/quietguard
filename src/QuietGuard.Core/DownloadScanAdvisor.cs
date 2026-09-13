@@ -6,7 +6,9 @@ public static class DownloadScanAdvisor
     public static readonly TimeSpan Cooldown = TimeSpan.FromSeconds(30);
 
     public static bool ShouldQueue(string path) =>
-        DownloadWatchFilter.ShouldScan(path) && ScanPathSafety.IsSafeCustomScanTarget(path);
+        DownloadWatchFilter.ShouldScan(path)
+        && ScanPathSafety.IsSafeCustomScanTarget(path)
+        && !PathExclusion.IsExcluded(path, PathExclusion.DefaultQuietExclusions());
 
     public static bool ShouldNotify(int mpCmdExitCode) => !MpCmdExit.IsClean(mpCmdExitCode);
 

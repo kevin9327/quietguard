@@ -40,6 +40,14 @@ public class DownloadScanAdvisorTests
     }
 
     [Fact]
+    public void ShouldQueue_respects_default_path_exclusions()
+    {
+        var windowsExe = @"C:\Windows\notepad.exe";
+        Assert.True(PathExclusion.IsExcluded(windowsExe, PathExclusion.DefaultQuietExclusions()));
+        Assert.False(DownloadScanAdvisor.ShouldQueue(windowsExe));
+    }
+
+    [Fact]
     public void ShouldNotify_quiet_on_zero_nonzero_notifies()
     {
         Assert.False(DownloadScanAdvisor.ShouldNotify(0));

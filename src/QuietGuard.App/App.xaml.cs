@@ -59,6 +59,8 @@ public partial class App : System.Windows.Application
             Console.WriteLine($"schedule-notify={schedule.NotifyUser}");
             Console.WriteLine($"download-queue-exe={DownloadScanAdvisor.ShouldQueue(@"C:\Users\a\Downloads\setup.exe")}");
             Console.WriteLine($"budget-quiet={ !EngineBudgetMath.ExceedsQuietBudget(1f, 50L * 1024 * 1024)}");
+            Console.WriteLine($"last-scan={LastScanDisplay.Format(LastScanStore.Read(), DateTime.UtcNow)}");
+            Console.WriteLine($"excluded-windows={PathExclusion.IsExcluded(@"C:\Windows\notepad.exe", PathExclusion.DefaultQuietExclusions())}");
             Environment.ExitCode = 0;
         }
         catch (Exception ex)

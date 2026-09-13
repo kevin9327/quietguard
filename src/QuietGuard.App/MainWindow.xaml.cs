@@ -200,10 +200,11 @@ public partial class MainWindow : Window
                 _ => (Media.Brush)FindResource("Bad")
             };
             ReasonList.ItemsSource = verdict.Reasons;
-            RealtimeText.Text = OnOff(status.RealTimeProtectionEnabled);
-            IoavText.Text = OnOff(status.IoavProtectionEnabled);
-            TamperText.Text = OnOff(status.IsTamperProtected);
-            SignatureText.Text = status.SignatureVersion ?? "-";
+            RealtimeText.Text = FirewallStatusText.OnOff(status.RealTimeProtectionEnabled);
+            IoavText.Text = FirewallStatusText.OnOff(status.IoavProtectionEnabled);
+            TamperText.Text = FirewallStatusText.OnOff(status.IsTamperProtected);
+            SignatureText.Text = (status.SignatureVersion ?? "-") + "\n" +
+                LastScanDisplay.Format(LastScanStore.Read(), DateTime.UtcNow);
             _tray.Text = $"QuietGuard · {verdict.Headline}";
 
             _threats.Clear();
@@ -227,7 +228,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static string OnOff(bool value) => value ? "켜짐" : "꺼짐";
+
 
     private void OnClosing(object sender, System.ComponentModel.CancelEventArgs e)
     {
