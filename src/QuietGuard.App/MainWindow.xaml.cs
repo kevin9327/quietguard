@@ -21,6 +21,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        RestoreButton.Content = ThreatActionLabels.Button(ThreatActionKind.Restore);
+        AllowButton.Content = ThreatActionLabels.Button(ThreatActionKind.Allow);
+        RemediateButton.Content = ThreatActionLabels.Button(ThreatActionKind.Remediate);
         _watch = new DownloadWatchService(_engine);
         _watch.FileScanned += OnFileScanned;
         _watch.ScanFailed += (_, ex) => Dispatcher.Invoke(() => ActionText.Text = ex.Message);
