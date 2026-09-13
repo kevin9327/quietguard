@@ -22,8 +22,8 @@ public static class ProtectionAdvisor
 
         if (status.SignaturesOutOfDate)
             reasons.Add("바이러스 정의가 오래되었습니다.");
-        else if (status.SignatureAge is { } age && age > SignatureStaleAfter)
-            reasons.Add($"바이러스 정의가 {age.Days}일 전입니다.");
+        else if (SignatureAgeAdvisor.IsStale(status.SignatureAge, SignatureStaleAfter))
+            reasons.Add($"바이러스 정의가 {SignatureAgeAdvisor.FormatAge(status.SignatureAge)}입니다.");
 
         if (reasons.Count == 0)
         {

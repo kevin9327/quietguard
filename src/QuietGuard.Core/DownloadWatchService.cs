@@ -54,7 +54,7 @@ public sealed class DownloadWatchService : IDisposable
 
     private void QueueScan(string path)
     {
-        if (!DownloadWatchFilter.ShouldScan(path))
+        if (!DownloadScanAdvisor.ShouldQueue(path))
             return;
 
         lock (_gate)
@@ -70,7 +70,7 @@ public sealed class DownloadWatchService : IDisposable
     {
         try
         {
-            await Task.Delay(1500).ConfigureAwait(false);
+            await Task.Delay(DownloadScanAdvisor.Debounce).ConfigureAwait(false);
             var code = await _engine.ScanFileAsync(path).ConfigureAwait(false);
             FileScanned?.Invoke(path, code);
         }
@@ -80,7 +80,7 @@ public sealed class DownloadWatchService : IDisposable
         }
         finally
         {
-            await Task.Delay(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
+            await Task.Delay(DownloadScanAdvisor.Cooldown).ConfigureAwait(false);
             lock (_gate)
             {
                 _recent.Remove(path);

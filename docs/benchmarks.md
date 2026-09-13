@@ -30,9 +30,9 @@
 | 가벼움 | simplewall | 상주 UI + 감시만. 엔진 추가 없음 |
 | 한국어 | 없음 | 기본 UI 한국어 |
 | 조용함 | Harden/Configure는 설정이 많음 | 건강하면 알림 없음. 예약 검사도 보호 중이면 무음 |
-| 다운로드 감시 | ClamAV GUI, Amaru | 실행 파일 확장자만 |
+| 다운로드 감시 | ClamAV GUI, Amaru | 실행 파일만 큐. 종료 코드 0이면 알림 없음 |
 | 격리 조치 | defender-console, HawkEye | 복원 / 허용 / 치료 검사를 Defender로 |
-| 리소스 표시 | Defender Performance Tool | MsMpEng CPU/RAM |
+| 리소스 표시 | Defender Performance Tool | MsMpEng CPU/RAM + 15%/600MB 조용한 상한 |
 | 부팅 시작 | HawkEye | 선택적 HKCU Run, `--tray` |
 | 오픈소스 라이선스 | 대체로 MIT/GPL | MIT |
 

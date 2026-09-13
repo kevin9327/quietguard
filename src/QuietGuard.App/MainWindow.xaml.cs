@@ -99,14 +99,14 @@ public partial class MainWindow : Window
     private async Task ApplySelectedAsync(ThreatActionKind kind)
     {
         var index = ThreatList.SelectedIndex;
-        if (index < 0 || index >= _threats.Count)
+        if (!ThreatListPresentation.IsSelectableIndex(index, _threats.Count))
         {
             ActionText.Text = "위협을 먼저 선택하세요.";
             return;
         }
 
         var threat = _threats[index];
-        if (!ThreatActions.CanAct(kind, threat))
+        if (!ThreatListPresentation.AvailableActions(threat).Contains(kind))
         {
             ActionText.Text = "이 항목에는 해당 조치를 쓸 수 없습니다.";
             return;
@@ -174,11 +174,10 @@ public partial class MainWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
-            var name = System.IO.Path.GetFileName(path);
-            ActionText.Text = code == 0 ? $"다운로드 검사 완료: {name}" : $"다운로드 검사 코드 {code}: {name}";
-            if (code != 0)
+            ActionText.Text = DownloadScanAdvisor.FormatResult(path, code);
+            if (DownloadScanAdvisor.ShouldNotify(code))
             {
-                _tray.ShowBalloonTip(4000, "QuietGuard", $"{name} 검사 결과 코드 {code}", Forms.ToolTipIcon.Warning);
+                _tray.ShowBalloonTip(4000, "QuietGuard", ActionText.Text, Forms.ToolTipIcon.Warning);
             }
             RefreshAll();
         });
@@ -207,13 +206,15 @@ public partial class MainWindow : Window
             _threats.Clear();
             _threats.AddRange(_engine.ReadThreats());
             ThreatList.ItemsSource = _threats.Count == 0
-                ? new[] { "최근 위협 없음" }
-                : _threats.Select(t => $"{t.DetectedAt:MM-dd HH:mm}  {t.Name}  {t.Path}").ToList();
+                ? new[] { ThreatListPresentation.EmptyListPlaceholder }
+                : _threats.Select(ThreatListPresentation.FormatRow).ToList();
 
             var budget = _budget.Read();
             BudgetText.Text =
-                $"Defender {budget.DefenderCpuPercent:0.0}% · {ToMb(budget.DefenderWorkingSetBytes)}\n" +
-                $"QuietGuard {ToMb(budget.AppWorkingSetBytes)}";
+                EngineBudgetMath.FormatLine("Defender", budget.DefenderCpuPercent, budget.DefenderWorkingSetBytes) + "\n" +
+                EngineBudgetMath.FormatLine("QuietGuard", budget.AppCpuPercent, budget.AppWorkingSetBytes);
+            if (EngineBudgetMath.ExceedsQuietBudget(budget.DefenderCpuPercent, budget.DefenderWorkingSetBytes))
+                BudgetText.Text += "\n무거움";
         }
         catch (Exception ex)
         {
@@ -224,8 +225,6 @@ public partial class MainWindow : Window
     }
 
     private static string OnOff(bool value) => value ? "켜짐" : "꺼짐";
-
-    private static string ToMb(long bytes) => $"{bytes / (1024.0 * 1024.0):0} MB";
 
     private void OnClosing(object sender, System.ComponentModel.CancelEventArgs e)
     {

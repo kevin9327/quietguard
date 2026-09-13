@@ -31,11 +31,17 @@ public sealed class EngineBudgetReader
             {
                 if (defender is { HasExited: false })
                 {
-                    defenderCpu = CpuPercent(defender.TotalProcessorTime - _lastDefenderCpu, elapsed);
+                    defenderCpu = EngineBudgetMath.CpuPercent(
+                        defender.TotalProcessorTime - _lastDefenderCpu,
+                        elapsed,
+                        Environment.ProcessorCount);
                     defenderWs = defender.WorkingSet64;
                 }
 
-                appCpu = CpuPercent(app.TotalProcessorTime - _lastAppCpu, elapsed);
+                appCpu = EngineBudgetMath.CpuPercent(
+                    app.TotalProcessorTime - _lastAppCpu,
+                    elapsed,
+                    Environment.ProcessorCount);
             }
         }
 
@@ -49,13 +55,5 @@ public sealed class EngineBudgetReader
         _lastSampleUtc = now;
 
         return new EngineBudget(defenderCpu, defenderWs, appCpu, app.WorkingSet64);
-    }
-
-    private static float CpuPercent(TimeSpan delta, double elapsedSeconds)
-    {
-        var percent = delta.TotalSeconds / (Environment.ProcessorCount * elapsedSeconds) * 100.0;
-        if (percent < 0) return 0;
-        if (percent > 100) return 100;
-        return (float)percent;
     }
 }

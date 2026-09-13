@@ -57,6 +57,8 @@ public partial class App : System.Windows.Application
             var schedule = ScanScheduler.Decide(DateTime.UtcNow, null, ScanScheduler.DefaultInterval, verdict.Level);
             Console.WriteLine($"schedule-should-scan={schedule.ShouldScan}");
             Console.WriteLine($"schedule-notify={schedule.NotifyUser}");
+            Console.WriteLine($"download-queue-exe={DownloadScanAdvisor.ShouldQueue(@"C:\Users\a\Downloads\setup.exe")}");
+            Console.WriteLine($"budget-quiet={ !EngineBudgetMath.ExceedsQuietBudget(1f, 50L * 1024 * 1024)}");
             Environment.ExitCode = 0;
         }
         catch (Exception ex)
