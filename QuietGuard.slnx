@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/QuietGuard.App/QuietGuard.App.csproj" />
+    <Project Path="src/QuietGuard.Core/QuietGuard.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/QuietGuard.Tests/QuietGuard.Tests.csproj" />
+  </Folder>
+</Solution>

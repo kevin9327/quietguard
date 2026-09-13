@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>QuietGuard</AssemblyName>
+    <RootNamespace>QuietGuard.App</RootNamespace>
+    <Product>QuietGuard</Product>
+    <Description>조용한 Windows 보안. Microsoft Defender 엔진 프론트엔드.</Description>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\QuietGuard.Core\QuietGuard.Core.csproj" />
+  </ItemGroup>
+</Project>
