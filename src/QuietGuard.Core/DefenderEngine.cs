@@ -68,6 +68,31 @@ public sealed class DefenderEngine
         return RunMpCmdAsync($"-Scan -ScanType 3 -File \"{path}\"", cancellationToken);
     }
 
+    public Task<int> ApplyAsync(ThreatActionKind kind, ThreatInfo threat, CancellationToken cancellationToken = default)
+    {
+        var plan = ThreatActions.Plan(kind, threat);
+        if (plan.FileName.Equals("MpCmdRun.exe", StringComparison.OrdinalIgnoreCase))
+            return RunMpCmdAsync(plan.Arguments, cancellationToken);
+        return RunProcessAsync(plan, cancellationToken);
+    }
+
+    public async Task<ScanScheduleDecision> RunScheduledScanIfDueAsync(
+        ProtectionLevel level,
+        DateTime utcNow,
+        CancellationToken cancellationToken = default)
+    {
+        var last = LastScanStore.Read();
+        var decision = ScanScheduler.Decide(utcNow, last, ScanScheduler.DefaultInterval, level);
+        if (!decision.ShouldScan)
+            return decision;
+
+        var code = await RunMpCmdAsync(ScanScheduler.MpCmdArgumentsForScheduledQuickScan(), cancellationToken)
+            .ConfigureAwait(false);
+        if (code == 0)
+            LastScanStore.Write(utcNow);
+        return decision;
+    }
+
     public static string ResolveMpCmdRun()
     {
         var candidates = new[]
@@ -95,6 +120,29 @@ public sealed class DefenderEngine
 
         using var process = Process.Start(start)
             ?? throw new InvalidOperationException("MpCmdRun.exe를 시작하지 못했습니다.");
+        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        return process.ExitCode;
+    }
+
+    private static async Task<int> RunProcessAsync(ThreatActionPlan plan, CancellationToken cancellationToken)
+    {
+        var start = new ProcessStartInfo
+        {
+            FileName = plan.FileName,
+            Arguments = plan.Arguments,
+            UseShellExecute = plan.RequiresElevation,
+            CreateNoWindow = !plan.RequiresElevation
+        };
+        if (plan.RequiresElevation)
+            start.Verb = "runas";
+        else
+        {
+            start.RedirectStandardOutput = true;
+            start.RedirectStandardError = true;
+        }
+
+        using var process = Process.Start(start)
+            ?? throw new InvalidOperationException($"{plan.FileName}을(를) 시작하지 못했습니다.");
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         return process.ExitCode;
     }

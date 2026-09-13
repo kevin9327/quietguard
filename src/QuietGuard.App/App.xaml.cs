@@ -27,7 +27,8 @@ public partial class App : System.Windows.Application
         }
 
         var window = new MainWindow();
-        window.Show();
+        if (!args.Contains("--tray", StringComparer.OrdinalIgnoreCase))
+            window.Show();
     }
 
     private static void RunSelfTest()
@@ -50,6 +51,12 @@ public partial class App : System.Windows.Application
             Console.WriteLine($"engine={status.EngineVersion}");
             Console.WriteLine($"signatures={status.SignatureVersion}");
             Console.WriteLine($"mpcmdrun={DefenderEngine.ResolveMpCmdRun()}");
+            var sample = new ThreatInfo("2147598187", @"C:\Users\a\Downloads\payload.exe", "Quarantined", DateTime.UtcNow);
+            var restore = ThreatActions.Plan(ThreatActionKind.Restore, sample);
+            Console.WriteLine($"threat-restore={restore.Arguments.Contains("-Restore")}");
+            var schedule = ScanScheduler.Decide(DateTime.UtcNow, null, ScanScheduler.DefaultInterval, verdict.Level);
+            Console.WriteLine($"schedule-should-scan={schedule.ShouldScan}");
+            Console.WriteLine($"schedule-notify={schedule.NotifyUser}");
             Environment.ExitCode = 0;
         }
         catch (Exception ex)

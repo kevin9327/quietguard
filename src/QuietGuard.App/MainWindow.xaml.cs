@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Threading;
+using Microsoft.Win32;
 using QuietGuard;
 using Forms = System.Windows.Forms;
 using Media = System.Windows.Media;
@@ -12,7 +13,9 @@ public partial class MainWindow : Window
     private readonly EngineBudgetReader _budget = new();
     private readonly DownloadWatchService _watch;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(4) };
+    private readonly DispatcherTimer _scheduleTimer = new() { Interval = TimeSpan.FromMinutes(15) };
     private readonly Forms.NotifyIcon _tray = new();
+    private readonly List<ThreatInfo> _threats = [];
     private bool _exitRequested;
 
     public MainWindow()
@@ -46,8 +49,11 @@ public partial class MainWindow : Window
 
         _timer.Tick += (_, _) => RefreshAll();
         _timer.Start();
+        _scheduleTimer.Tick += async (_, _) => await RunScheduledScanAsync();
+        _scheduleTimer.Start();
         WatchToggle.IsChecked = true;
         RefreshAll();
+        _ = RunScheduledScanAsync();
     }
 
     private async void OnQuickScan(object sender, RoutedEventArgs e)
@@ -78,6 +84,86 @@ public partial class MainWindow : Window
         {
             ActionText.Text = ex.Message;
         }
+    }
+
+    private async void OnRestore(object sender, RoutedEventArgs e) => await ApplySelectedAsync(ThreatActionKind.Restore);
+
+    private async void OnAllow(object sender, RoutedEventArgs e) => await ApplySelectedAsync(ThreatActionKind.Allow);
+
+    private async void OnRemediate(object sender, RoutedEventArgs e) => await ApplySelectedAsync(ThreatActionKind.Remediate);
+
+    private void OnBootChecked(object sender, RoutedEventArgs e) => SetBoot(true);
+
+    private void OnBootUnchecked(object sender, RoutedEventArgs e) => SetBoot(false);
+
+    private async Task ApplySelectedAsync(ThreatActionKind kind)
+    {
+        var index = ThreatList.SelectedIndex;
+        if (index < 0 || index >= _threats.Count)
+        {
+            ActionText.Text = "위협을 먼저 선택하세요.";
+            return;
+        }
+
+        var threat = _threats[index];
+        if (!ThreatActions.CanAct(kind, threat))
+        {
+            ActionText.Text = "이 항목에는 해당 조치를 쓸 수 없습니다.";
+            return;
+        }
+
+        try
+        {
+            var plan = ThreatActions.Plan(kind, threat);
+            ActionText.Text = plan.Summary;
+            var code = await _engine.ApplyAsync(kind, threat);
+            ActionText.Text = code == 0 ? $"{plan.Summary} 완료" : $"{plan.Summary} 코드 {code}";
+            if (plan.NotifyUser && code != 0)
+                _tray.ShowBalloonTip(4000, "QuietGuard", plan.Summary, Forms.ToolTipIcon.Warning);
+            RefreshAll();
+        }
+        catch (Exception ex)
+        {
+            ActionText.Text = ex.Message;
+        }
+    }
+
+    private async Task RunScheduledScanAsync()
+    {
+        try
+        {
+            var status = _engine.ReadStatus();
+            var verdict = ProtectionAdvisor.Advise(status);
+            var decision = await _engine.RunScheduledScanIfDueAsync(verdict.Level, DateTime.UtcNow);
+            if (!decision.ShouldScan)
+                return;
+            if (decision.NotifyUser)
+                _tray.ShowBalloonTip(4000, "QuietGuard", decision.Reason, Forms.ToolTipIcon.Info);
+            else
+                ActionText.Text = decision.Reason;
+            RefreshAll();
+        }
+        catch (Exception ex)
+        {
+            ActionText.Text = ex.Message;
+        }
+    }
+
+    private static void SetBoot(bool enabled)
+    {
+        var exe = Environment.ProcessPath ?? "";
+        if (!StartupRegistration.IsSafeExePath(exe))
+            return;
+        if (!StartupRegistration.ShouldEnableAtBoot(enabled, ProtectionLevel.Protected) && enabled)
+            return;
+
+        using var key = Registry.CurrentUser.OpenSubKey(StartupRegistration.RunKeyPath, writable: true);
+        if (key is null)
+            return;
+        if (enabled)
+            key.SetValue(StartupRegistration.RunValueName, StartupRegistration.FormatLaunchCommand(exe));
+        else
+            key.DeleteValue(StartupRegistration.RunValueName, throwOnMissingValue: false);
     }
 
     private void OnWatchChecked(object sender, RoutedEventArgs e) => _watch.Start();
@@ -118,10 +204,11 @@ public partial class MainWindow : Window
             SignatureText.Text = status.SignatureVersion ?? "-";
             _tray.Text = $"QuietGuard · {verdict.Headline}";
 
-            var threats = _engine.ReadThreats();
-            ThreatList.ItemsSource = threats.Count == 0
-                ? ["최근 위협 없음"]
-                : threats.Select(t => $"{t.DetectedAt:MM-dd HH:mm}  {t.Name}  {t.Path}").ToList();
+            _threats.Clear();
+            _threats.AddRange(_engine.ReadThreats());
+            ThreatList.ItemsSource = _threats.Count == 0
+                ? new[] { "최근 위협 없음" }
+                : _threats.Select(t => $"{t.DetectedAt:MM-dd HH:mm}  {t.Name}  {t.Path}").ToList();
 
             var budget = _budget.Read();
             BudgetText.Text =
@@ -145,6 +232,7 @@ public partial class MainWindow : Window
         if (_exitRequested)
         {
             _timer.Stop();
+            _scheduleTimer.Stop();
             _watch.Dispose();
             _tray.Visible = false;
             _tray.Dispose();
