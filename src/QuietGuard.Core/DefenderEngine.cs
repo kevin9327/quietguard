@@ -62,7 +62,7 @@ public sealed class DefenderEngine
 
     public Task<int> ScanFileAsync(string path, CancellationToken cancellationToken = default)
     {
-        if (!DownloadWatchFilter.ShouldScan(path))
+        if (!DownloadScanAdvisor.ShouldQueue(path))
             return Task.FromResult(0);
 
         return RunMpCmdAsync($"-Scan -ScanType 3 -File \"{path}\"", cancellationToken);

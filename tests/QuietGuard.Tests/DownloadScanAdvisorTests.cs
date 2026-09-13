@@ -31,6 +31,15 @@ public class DownloadScanAdvisorTests
     }
 
     [Fact]
+    public void ShouldQueue_rejects_windows_exe_even_if_extension_matches()
+    {
+        var path = @"C:\Windows\notepad.exe";
+        Assert.True(DownloadWatchFilter.ShouldScan(path));
+        Assert.False(ScanPathSafety.IsSafeCustomScanTarget(path));
+        Assert.False(DownloadScanAdvisor.ShouldQueue(path));
+    }
+
+    [Fact]
     public void ShouldNotify_quiet_on_zero_nonzero_notifies()
     {
         Assert.False(DownloadScanAdvisor.ShouldNotify(0));

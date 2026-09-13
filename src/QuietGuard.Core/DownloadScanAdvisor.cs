@@ -5,9 +5,10 @@ public static class DownloadScanAdvisor
     public static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(1500);
     public static readonly TimeSpan Cooldown = TimeSpan.FromSeconds(30);
 
-    public static bool ShouldQueue(string path) => DownloadWatchFilter.ShouldScan(path);
+    public static bool ShouldQueue(string path) =>
+        DownloadWatchFilter.ShouldScan(path) && ScanPathSafety.IsSafeCustomScanTarget(path);
 
-    public static bool ShouldNotify(int mpCmdExitCode) => mpCmdExitCode != 0;
+    public static bool ShouldNotify(int mpCmdExitCode) => !MpCmdExit.IsClean(mpCmdExitCode);
 
     public static string FormatResult(string path, int mpCmdExitCode)
     {
